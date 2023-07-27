@@ -1,0 +1,7 @@
+.venv
+__pycache__/
+
+poetry.lock
+output/
+
+memo.txt
