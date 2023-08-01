@@ -30,10 +30,7 @@ def main():
     create_output_dir(os.path.join(os.getcwd(), "output"))
 
     if file_path.lower().endswith((".mp4", ".avi", ".mov")):
-        if mode == "normal":
-            process_video(file_path, output_type="image")
-        elif mode == "simple":
-            process_video(file_path, output_type=output_type)
+        process_video(file_path, mode, output_type="image")
 
     elif file_path.lower().endswith((".jpg", ".jpeg", ".png")):
         process_image(file_path)

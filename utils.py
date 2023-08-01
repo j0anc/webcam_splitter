@@ -20,3 +20,8 @@ def clear_create_dir(dir: str) -> None:
     os.makedirs(dir)
     print(f"Directory '{dir}' created.")
     return
+
+
+def get_filename(file_path: str) -> str:
+    filename, _ = os.path.splitext(os.path.basename(file_path))
+    return filename

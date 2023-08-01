@@ -1,54 +1,81 @@
 import os
-from functools import cache
 
 import cv2
-import numpy as np
 from ultralytics import YOLO
 
-from utils import clear_create_dir
+from inference import crop_boxes, get_boxes, load_model
+from utils import clear_create_dir, get_filename
 
 
-@cache
-def load_model(model_path: str):
-    model = YOLO(model_path)
-    return model
+def process_video(file_path: str, mode: str, output_type: str):
+    # create output directories
+    filename = get_filename(file_path)
+    output_dir = os.path.join(os.getcwd(), "output", filename)
+    clear_create_dir(output_dir)
 
+    # load model
+    model = load_model(os.path.join(os.getcwd(), "model", "webcam_split.pt"))
 
-def detect_webcam():
-    return
+    cap = cv2.VideoCapture(file_path)
 
+    if not cap.isOpened():
+        print("Error: Failed to open the video file.")
+        return
 
-def crop_webcam(
-    img: np.ndarray, xmin: int, ymin: int, xmax: int, ymax: int
-) -> np.ndarray:
-    return img[ymin:ymax, xmin:xmax]
+    frame_idx = 0
+    boxes = []
+    while frame_idx < 50:
+        ret, frame = cap.read()
 
+        if not ret:
+            break
 
-def process_video(file_path: str, output_type: str):
+        # can choose to save cropped webcam areas to image or save it to a video
+        if mode == "simple":
+            # only run webcem detection on the first frame
+            if frame_idx == 0:
+                pred = model.predict(frame)
+                boxes = get_boxes(pred)
+
+                if len(boxes) == 0:
+                    print(
+                        "no webcams detected from the first frame. use normal mode maybe?"
+                    )
+
+                for i in range(len(boxes)):
+                    os.makedirs(os.path.join(output_dir, f"webcam_{str(i)}"))
+
+            crop_boxes(frame, boxes, "simple", output_dir, frame_idx)
+
+            if output_type == "video":
+                pass
+
+        # can only save cropped webcam areas as image
+        if mode == "normal":
+            pred = model.predict(frame)
+            boxes = get_boxes(pred)
+            crop_boxes(frame, boxes, "normal", output_dir, frame_idx)
+
+        frame_idx += 1
+
+    cap.release()
+    cv2.destroyAllWindows()
+
     return
 
 
 def process_image(file_path: str):
-    filename, _ = os.path.splitext(os.path.basename(file_path))
+    filename = get_filename(file_path)
 
     img = cv2.imread(file_path)
     model = load_model(os.path.join(os.getcwd(), "model", "webcam_split.pt"))
 
-    pred = model.predict(file_path)
-    boxes = pred[0].boxes.data
-
-    boxes_arr = boxes.detach().numpy().copy()
+    pred = model.predict(img)
+    boxes = get_boxes(pred)
 
     output_dir = os.path.join(os.getcwd(), "output", filename)
     clear_create_dir(output_dir)
 
-    for i, box in enumerate(boxes_arr):
-        x_min, y_min, x_max, y_max, conf, _ = box
-        if conf > 0.7:
-            cropped_area = img[int(y_min) : int(y_max), int(x_min) : int(x_max)]
-            cv2.imwrite(
-                os.path.join(output_dir, f"{filename}_{i}.jpg"),
-                cropped_area,
-            )
+    crop_boxes(img, boxes, "image", output_dir)
 
     return
