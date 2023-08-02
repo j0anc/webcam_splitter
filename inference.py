@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 
-from typing import Optional
+from typing import Optional, List, Any
 
 
 @cache
@@ -20,7 +20,7 @@ def get_boxes(pred) -> np.ndarray:
     return boxes_arr
 
 
-def crop_boxes(
+def crop_boxes_to_image(
     img: np.ndarray,
     boxes: np.ndarray,
     mode: str,
@@ -30,19 +30,39 @@ def crop_boxes(
     for webcam_idx, box in enumerate(boxes):
         x_min, y_min, x_max, y_max, conf, _ = box
 
+        if conf < 0.7:
+            continue
+
         if mode == "simple":
             output_file_path = os.path.join(
                 output_dir, f"webcam_{str(webcam_idx)}", f"{frame_idx}.jpg"
             )
+
         elif mode == "normal":
             output_file_path = os.path.join(output_dir, f"{frame_idx}_{webcam_idx}.jpg")
+
         elif mode == "image":
             output_file_path = os.path.join(output_dir, f"{webcam_idx}.jpg")
+
         else:
             print("invalid mode")
 
-        if conf > 0.7:
-            cropped_area = img[int(y_min) : int(y_max), int(x_min) : int(x_max)]
-            cv2.imwrite(output_file_path, cropped_area)
+        cropped_area = img[int(y_min) : int(y_max), int(x_min) : int(x_max)]
+        cv2.imwrite(output_file_path, cropped_area)
+
+    return
+
+
+def crop_boxes_to_video(
+    img: np.ndarray, boxes: np.ndarray, video_writers: List[Any]
+) -> None:
+    for webcam_idx, box in enumerate(boxes):
+        x_min, y_min, x_max, y_max, conf, _ = box
+
+        if conf < 0.7:
+            continue
+
+        cropped_area = img[int(y_min) : int(y_max), int(x_min) : int(x_max)]
+        video_writers[webcam_idx].write(cropped_area)
 
     return

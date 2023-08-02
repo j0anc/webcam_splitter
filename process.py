@@ -3,8 +3,14 @@ import os
 import cv2
 from ultralytics import YOLO
 
-from inference import crop_boxes, get_boxes, load_model
-from utils import clear_create_dir, get_filename
+from inference import crop_boxes_to_image, crop_boxes_to_video, get_boxes, load_model
+from utils import (
+    clear_create_dir,
+    close_video_writers,
+    create_output_dirs,
+    get_filename,
+    get_video_writers,
+)
 
 
 def process_video(file_path: str, mode: str, output_type: str):
@@ -18,13 +24,18 @@ def process_video(file_path: str, mode: str, output_type: str):
 
     cap = cv2.VideoCapture(file_path)
 
+    # get video properties
+    frame_rate = int(cap.get(cv2.CAP_PROP_FPS))
+
     if not cap.isOpened():
         print("Error: Failed to open the video file.")
         return
 
     frame_idx = 0
     boxes = []
-    while frame_idx < 50:
+    video_writers = []
+
+    while True:
         ret, frame = cap.read()
 
         if not ret:
@@ -42,21 +53,27 @@ def process_video(file_path: str, mode: str, output_type: str):
                         "no webcams detected from the first frame. use normal mode maybe?"
                     )
 
-                for i in range(len(boxes)):
-                    os.makedirs(os.path.join(output_dir, f"webcam_{str(i)}"))
+                if output_type == "image":
+                    create_output_dirs(len(boxes), output_dir)
 
-            crop_boxes(frame, boxes, "simple", output_dir, frame_idx)
+                if output_type == "video":
+                    get_video_writers(output_dir, frame_rate, boxes, video_writers)
 
             if output_type == "video":
-                pass
+                crop_boxes_to_video(frame, boxes, video_writers)
+
+            if output_type == "image":
+                crop_boxes_to_image(frame, boxes, "simple", output_dir, frame_idx)
 
         # can only save cropped webcam areas as image
         if mode == "normal":
             pred = model.predict(frame)
             boxes = get_boxes(pred)
-            crop_boxes(frame, boxes, "normal", output_dir, frame_idx)
+            crop_boxes_to_image(frame, boxes, "normal", output_dir, frame_idx)
 
         frame_idx += 1
+
+    close_video_writers(video_writers)
 
     cap.release()
     cv2.destroyAllWindows()
@@ -76,6 +93,6 @@ def process_image(file_path: str):
     output_dir = os.path.join(os.getcwd(), "output", filename)
     clear_create_dir(output_dir)
 
-    crop_boxes(img, boxes, "image", output_dir)
+    crop_boxes_to_image(img, boxes, "image", output_dir)
 
     return

@@ -15,7 +15,7 @@ def main():
         help="Mode for video files: normal or simple (default: normal)",
     )
     parser.add_argument(
-        "--output_type",
+        "--output-type",
         choices=["image", "video"],
         default="image",
         help="Output type for simple mode: image or video (default: image)",
@@ -30,7 +30,7 @@ def main():
     create_output_dir(os.path.join(os.getcwd(), "output"))
 
     if file_path.lower().endswith((".mp4", ".avi", ".mov")):
-        process_video(file_path, mode, output_type="image")
+        process_video(file_path, mode, output_type)
 
     elif file_path.lower().endswith((".jpg", ".jpeg", ".png")):
         process_image(file_path)
