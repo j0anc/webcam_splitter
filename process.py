@@ -13,7 +13,7 @@ from utils import (
 )
 
 
-def process_video(file_path: str, mode: str, output_type: str):
+def process_video(file_path: str, mode: str, output_type: str, fps: float) -> None:
     # create output directories
     filename = get_filename(file_path)
     output_dir = os.path.join(os.getcwd(), "output", filename)
@@ -26,6 +26,12 @@ def process_video(file_path: str, mode: str, output_type: str):
 
     # get video properties
     frame_rate = int(cap.get(cv2.CAP_PROP_FPS))
+
+    if fps is None:
+        fps = frame_rate
+
+    # calculate frame interval for fps adjustment
+    frame_interval = frame_rate // fps
 
     if not cap.isOpened():
         print("Error: Failed to open the video file.")
@@ -40,6 +46,10 @@ def process_video(file_path: str, mode: str, output_type: str):
 
         if not ret:
             break
+
+        if frame_idx % frame_interval != 0:
+            frame_idx += 1
+            continue
 
         # can choose to save cropped webcam areas to image or save it to a video
         if mode == "simple":
@@ -81,7 +91,7 @@ def process_video(file_path: str, mode: str, output_type: str):
     return
 
 
-def process_image(file_path: str):
+def process_image(file_path: str) -> None:
     filename = get_filename(file_path)
 
     img = cv2.imread(file_path)

@@ -20,17 +20,21 @@ def main():
         default="image",
         help="Output type for simple mode: image or video (default: image)",
     )
+    parser.add_argument(
+        "--fps", nargs="?", type=float, help="how many frames to extract per second"
+    )
 
     args = parser.parse_args()
 
     file_path = args.file_path
     mode = args.mode
     output_type = args.output_type
+    fps = args.fps
 
     create_output_dir(os.path.join(os.getcwd(), "output"))
 
     if file_path.lower().endswith((".mp4", ".avi", ".mov")):
-        process_video(file_path, mode, output_type)
+        process_video(file_path, mode, output_type, fps)
 
     elif file_path.lower().endswith((".jpg", ".jpeg", ".png")):
         process_image(file_path)
